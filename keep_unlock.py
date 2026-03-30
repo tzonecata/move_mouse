@@ -1,103 +1,129 @@
+import argparse
+import ctypes
 import time
-import threading
-try:
-    import pyautogui
-except Exception as e:
-    print("Error importing pyautogui:", e)
-    raise
-try:
-    import keyboard
-except Exception:
-    keyboard = None
-from pynput import keyboard as pynput_keyboard
+from datetime import datetime
 
-pyautogui.FAILSAFE = True
+ES_CONTINUOUS = 0x80000000
+ES_SYSTEM_REQUIRED = 0x00000001
+ES_DISPLAY_REQUIRED = 0x00000002
+DEFAULT_REFRESH_SECONDS = 180.0
 
-# Configuration
-INTERVAL_SECONDS = 60       # wait between bursts
-BURST_DURATION = 2         # how long the quick visible movement lasts
-OFFSET = 150               # pixels left/right from center
-STEP_PIXELS = 8            # pixels per small move step
-STEP_DELAY = 0.02          # seconds between small steps (smaller = faster)
+kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+kernel32.SetThreadExecutionState.argtypes = [ctypes.c_uint]
+kernel32.SetThreadExecutionState.restype = ctypes.c_uint
 
 
-def burst_move_center(stop_event: threading.Event):
-    """Move the mouse left-right around center for BURST_DURATION seconds."""
-    width, height = pyautogui.size()
-    cx = width // 2
-    cy = height // 2
-    left_x = max(0, cx - OFFSET)
-    right_x = min(width - 1, cx + OFFSET)
-
-    start = time.time()
-    x = cx
-    direction = -1
-    while time.time() - start < BURST_DURATION and not stop_event.is_set():
-        # update screen size in case of display changes
-        width, height = pyautogui.size()
-        cy = height // 2
-        left_x = max(0, width // 2 - OFFSET)
-        right_x = min(width - 1, width // 2 + OFFSET)
-
-        if direction == -1:
-            x = max(x - STEP_PIXELS, left_x)
-        else:
-            x = min(x + STEP_PIXELS, right_x)
-
-        try:
-            pyautogui.moveTo(x, cy, duration=0)
-        except Exception:
-            pass
-
-        if x <= left_x:
-            direction = 1
-        elif x >= right_x:
-            direction = -1
-
-        # small sleep to control visible speed and allow stop_event check
-        slept = 0.0
-        while slept < STEP_DELAY and not stop_event.is_set():
-            time.sleep(min(0.005, STEP_DELAY - slept))
-            slept += 0.005
+def timestamp():
+    return datetime.now().strftime("%H:%M:%S")
 
 
-def keep_unlock_loop(stop_event: threading.Event):
-    last_burst = time.time() - INTERVAL_SECONDS  # trigger immediately if desired
-    while not stop_event.is_set():
-        now = time.time()
-        if now - last_burst >= INTERVAL_SECONDS:
-            # perform visible quick movement for BURST_DURATION seconds
-            burst_move_center(stop_event)
-            last_burst = time.time()
-        # sleep a little and re-check
-        time.sleep(0.5)
+def log(message):
+    print(f"[{timestamp()}] {message}", flush=True)
+
+
+def format_interval(seconds):
+    if seconds.is_integer() and int(seconds) % 60 == 0:
+        minutes = int(seconds) // 60
+        unit = "minut" if minutes == 1 else "minute"
+        return f"{minutes} {unit}"
+    return f"{seconds:g} secunde"
+
+
+def format_flags(value):
+    names = []
+    if value & ES_CONTINUOUS:
+        names.append("ES_CONTINUOUS")
+    if value & ES_SYSTEM_REQUIRED:
+        names.append("ES_SYSTEM_REQUIRED")
+    if value & ES_DISPLAY_REQUIRED:
+        names.append("ES_DISPLAY_REQUIRED")
+
+    if names:
+        return f"0x{value:08X} ({', '.join(names)})"
+    return f"0x{value:08X}"
+
+
+def set_execution_state(flags, label):
+    ctypes.set_last_error(0)
+    previous_state = kernel32.SetThreadExecutionState(flags)
+    last_error = ctypes.get_last_error()
+
+    if previous_state == 0:
+        log(
+            f"{label}: EROARE. flags={format_flags(flags)} "
+            f"GetLastError={last_error}"
+        )
+        return False
+
+    log(
+        f"{label}: OK. flags={format_flags(flags)} "
+        f"previous={format_flags(previous_state)}"
+    )
+    return True
+
+
+def enable_keep_awake():
+    flags = ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED
+    return set_execution_state(flags, "Enable keep-awake")
+
+
+def refresh_keep_awake():
+    flags = ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED
+    return set_execution_state(flags, "Refresh keep-awake")
+
+
+def disable_keep_awake():
+    return set_execution_state(ES_CONTINUOUS, "Disable keep-awake")
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Tine PC-ul activ fara sa miste mouse-ul."
+    )
+    parser.add_argument(
+        "--refresh-seconds",
+        type=float,
+        default=DEFAULT_REFRESH_SECONDS,
+        help="La cate secunde sa reaplice keep-awake si sa scrie heartbeat in consola.",
+    )
+    return parser.parse_args()
 
 
 def main():
-    print("keep_unlock: moves mouse left-right for 2s every 60s. Press Ctrl+T to stop.")
-    stop_event = threading.Event()
-    # try keyboard hotkey first
-    if keyboard:
-        try:
-            keyboard.add_hotkey('ctrl+t', stop_event.set)
-        except Exception:
-            pass
+    args = parse_args()
+    if args.refresh_seconds <= 0:
+        raise SystemExit("--refresh-seconds trebuie sa fie > 0")
 
-    # also register pynput hotkey as fallback
-    def on_activate():
-        stop_event.set()
+    log("keep_unlock pornit.")
+    log("Nu misca mouse-ul. Nu apasa taste.")
+    log(
+        "Foloseste doar Windows SetThreadExecutionState pentru a preveni idle, "
+        "sleep si display-off."
+    )
+    log(f"Heartbeat la fiecare {format_interval(args.refresh_seconds)}.")
+    log("Apasa Ctrl+C pentru oprire.")
 
-    hotkeys = pynput_keyboard.GlobalHotKeys({'<ctrl>+t': on_activate})
-    hotkeys.start()
+    enabled = enable_keep_awake()
+    if not enabled:
+        log("Activarea keep-awake a esuat. Scriptul se opreste.")
+        return 1
+
+    log(
+        "Verificare practica: lasa timeout-ul de lock/screen saver la 1 minut si "
+        "urmareste daca sistemul ramane activ cat timp apar heartbeat-urile."
+    )
 
     try:
-        keep_unlock_loop(stop_event)
+        while True:
+            time.sleep(args.refresh_seconds)
+            refresh_keep_awake()
     except KeyboardInterrupt:
-        stop_event.set()
+        log("Ctrl+C detectat. Oprire ceruta de utilizator.")
+    finally:
+        disable_keep_awake()
 
-    hotkeys.stop()
-    print('Stopped.')
+    return 0
 
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    raise SystemExit(main())
