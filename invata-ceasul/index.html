@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Învață ceasul</title>
+<style>
+  :root{--hour:#31d653;--minute:#ff4da3;--bg:#eef7ff;--ink:#17324d;--soft:#6f8498;--card:#ffffff}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,#eef7ff 0%,#f8fbff 100%);color:var(--ink);padding:14px 10px 28px}
+  .app{width:min(560px,100%);margin:auto}
+  h1{text-align:center;font-size:clamp(30px,8vw,46px);margin:6px 0 14px}
+  .card{background:#fff;border-radius:26px;padding:16px;margin-bottom:14px;box-shadow:0 10px 28px rgba(30,70,110,.12)}
+  .digital{text-align:center;font-size:clamp(60px,18vw,100px);font-weight:900;line-height:1;letter-spacing:1px;font-variant-numeric:tabular-nums}
+  .hour{color:var(--hour)} .minute{color:var(--minute)} .colon{color:#6c8195}
+  .caption{text-align:center;margin-top:10px;color:var(--soft);font-size:20px;font-weight:800}
+  .controls{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .control.full{grid-column:1/-1}
+  label{display:block;font-size:17px;font-weight:900;margin-bottom:6px}
+  select{width:100%;border:2px solid #d9e7f3;border-radius:16px;padding:14px 12px;font-size:24px;font-weight:900;background:#f9fcff;color:var(--ink)}
+  input[type="range"]{width:100%;accent-color:var(--minute)}
+  .minute-readout{text-align:center;font-size:24px;font-weight:900;color:var(--minute);margin-top:4px}
+  .clock-wrap{display:flex;justify-content:center}
+  svg{width:min(94vw,430px);height:auto;display:block;touch-action:none}
+  .legend{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;font-size:18px;font-weight:900;margin-top:12px}
+  .dot{display:inline-block;width:14px;height:14px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+  .tip{text-align:center;color:var(--soft);margin-top:10px;font-size:14px}
+  @media(max-width:380px){.controls{grid-template-columns:1fr}.control.full{grid-column:auto}}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>🕒 Învață ceasul</h1>
+  <div class="card">
+    <div class="digital"><span id="digitalHour" class="hour">10</span><span class="colon">:</span><span id="digitalMinute" class="minute">10</span></div>
+    <div class="caption">Ceas digital</div>
+  </div>
+  <div class="card">
+    <div class="controls">
+      <div class="control"><label for="hourSelect">Ora</label><select id="hourSelect"></select></div>
+      <div class="control"><label for="minuteSelect">Minute</label><select id="minuteSelect"></select></div>
+      <div class="control full"><label for="minuteRange">Alege orice minut</label><input id="minuteRange" type="range" min="0" max="59" step="1" value="10"><div id="minuteReadout" class="minute-readout">10 minute</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="clock-wrap">
+      <svg id="clock" viewBox="0 0 400 400" aria-label="Ceas analogic">
+        <circle cx="200" cy="200" r="180" fill="#fff" stroke="#2d5576" stroke-width="8"/>
+        <circle cx="200" cy="200" r="163" fill="none" stroke="#dbe7f0" stroke-width="2"/>
+        <g id="ticks"></g><g id="numbers"></g>
+        <g id="hourHand"><line x1="200" y1="212" x2="200" y2="108" stroke="#31d653" stroke-width="14" stroke-linecap="round"/><circle cx="200" cy="108" r="8" fill="#31d653"/></g>
+        <g id="minuteHand"><line x1="200" y1="220" x2="200" y2="62" stroke="#ff4da3" stroke-width="9" stroke-linecap="round"/><circle cx="200" cy="62" r="7" fill="#ff4da3"/></g>
+        <circle cx="200" cy="200" r="17" fill="#17324d"/><circle cx="200" cy="200" r="7" fill="#fff"/>
+      </svg>
+    </div>
+    <div class="caption">Ceas analogic</div>
+    <div class="legend"><span><span class="dot" style="background:#31d653"></span>Ora</span><span><span class="dot" style="background:#ff4da3"></span>Minute</span></div>
+    <div class="tip">Ora și minutele se schimbă imediat.</div>
+  </div>
+</div>
+<script>
+const hourSelect=document.getElementById('hourSelect'),minuteSelect=document.getElementById('minuteSelect'),minuteRange=document.getElementById('minuteRange'),minuteReadout=document.getElementById('minuteReadout'),digitalHour=document.getElementById('digitalHour'),digitalMinute=document.getElementById('digitalMinute'),hourHand=document.getElementById('hourHand'),minuteHand=document.getElementById('minuteHand'),ticks=document.getElementById('ticks'),numbers=document.getElementById('numbers'),clock=document.getElementById('clock');
+for(let h=1;h<=12;h++){let o=document.createElement('option');o.value=h;o.textContent=h;hourSelect.appendChild(o)}
+for(let m=0;m<60;m++){let o=document.createElement('option');o.value=m;o.textContent=String(m).padStart(2,'0');minuteSelect.appendChild(o)}
+for(let i=0;i<60;i++){let a=i*6*Math.PI/180,major=i%5===0,r1=major?143:151,r2=164,x1=200+Math.sin(a)*r1,y1=200-Math.cos(a)*r1,x2=200+Math.sin(a)*r2,y2=200-Math.cos(a)*r2,l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',major?'#2d5576':'#9fb3c5');l.setAttribute('stroke-width',major?'5':'2');l.setAttribute('stroke-linecap','round');ticks.appendChild(l)}
+for(let h=1;h<=12;h++){let a=h*30*Math.PI/180,r=118,t=document.createElementNS('http://www.w3.org/2000/svg','text');t.setAttribute('x',200+Math.sin(a)*r);t.setAttribute('y',200-Math.cos(a)*r);t.setAttribute('text-anchor','middle');t.setAttribute('dominant-baseline','middle');t.setAttribute('font-size','28');t.setAttribute('font-family','Arial,sans-serif');t.setAttribute('font-weight','900');t.setAttribute('fill','#17324d');t.textContent=h;numbers.appendChild(t)}
+let hour=10,minute=10;
+function update(){hourHand.setAttribute('transform',`rotate(${(hour%12)*30+minute*.5} 200 200)`);minuteHand.setAttribute('transform',`rotate(${minute*6} 200 200)`);digitalHour.textContent=String(hour).padStart(2,'0');digitalMinute.textContent=String(minute).padStart(2,'0');hourSelect.value=hour;minuteSelect.value=minute;minuteRange.value=minute;minuteReadout.textContent=minute===1?'1 minut':minute+' minute'}
+hourSelect.addEventListener('change',()=>{hour=Number(hourSelect.value);update()});minuteSelect.addEventListener('change',()=>{minute=Number(minuteSelect.value);update()});minuteRange.addEventListener('input',()=>{minute=Number(minuteRange.value);update()});
+let dragging=false;function setMinuteFromPointer(e){let pt=clock.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;let p=pt.matrixTransform(clock.getScreenCTM().inverse()),deg=Math.atan2(p.x-200,200-p.y)*180/Math.PI;if(deg<0)deg+=360;minute=Math.round(deg/6)%60;update()}
+minuteHand.addEventListener('pointerdown',e=>{dragging=true;minuteHand.setPointerCapture(e.pointerId);setMinuteFromPointer(e)});minuteHand.addEventListener('pointermove',e=>{if(dragging)setMinuteFromPointer(e)});minuteHand.addEventListener('pointerup',()=>dragging=false);minuteHand.addEventListener('pointercancel',()=>dragging=false);
+update();
+</script>
+</body>
+</html>
