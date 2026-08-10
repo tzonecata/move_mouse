@@ -18,8 +18,12 @@
   .control.full{grid-column:1/-1}
   label{display:block;font-size:17px;font-weight:900;margin-bottom:6px}
   select{width:100%;border:2px solid #d9e7f3;border-radius:16px;padding:14px 12px;font-size:24px;font-weight:900;background:#f9fcff;color:var(--ink)}
-  input[type="range"]{width:100%;accent-color:var(--minute)}
-  .minute-readout{text-align:center;font-size:24px;font-weight:900;color:var(--minute);margin-top:4px}
+  input[type="range"]{width:100%}
+  #hourRange{accent-color:var(--hour)}
+  #minuteRange{accent-color:var(--minute)}
+  .hour-readout,.minute-readout{text-align:center;font-size:24px;font-weight:900;margin-top:4px}
+  .hour-readout{color:var(--hour)}
+  .minute-readout{color:var(--minute)}
   .clock-wrap{display:flex;justify-content:center}
   svg{width:min(94vw,430px);height:auto;display:block;touch-action:none}
   .legend{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;font-size:18px;font-weight:900;margin-top:12px}
@@ -39,6 +43,7 @@
     <div class="controls">
       <div class="control"><label for="hourSelect">Ora</label><select id="hourSelect"></select></div>
       <div class="control"><label for="minuteSelect">Minute</label><select id="minuteSelect"></select></div>
+      <div class="control full"><label for="hourRange">Alege ora</label><input id="hourRange" type="range" min="1" max="12" step="1" value="10"><div id="hourReadout" class="hour-readout">Ora 10</div></div>
       <div class="control full"><label for="minuteRange">Alege orice minut</label><input id="minuteRange" type="range" min="0" max="59" step="1" value="10"><div id="minuteReadout" class="minute-readout">10 minute</div></div>
     </div>
   </div>
@@ -59,14 +64,14 @@
   </div>
 </div>
 <script>
-const hourSelect=document.getElementById('hourSelect'),minuteSelect=document.getElementById('minuteSelect'),minuteRange=document.getElementById('minuteRange'),minuteReadout=document.getElementById('minuteReadout'),digitalHour=document.getElementById('digitalHour'),digitalMinute=document.getElementById('digitalMinute'),hourHand=document.getElementById('hourHand'),minuteHand=document.getElementById('minuteHand'),ticks=document.getElementById('ticks'),numbers=document.getElementById('numbers'),clock=document.getElementById('clock');
+const hourSelect=document.getElementById('hourSelect'),minuteSelect=document.getElementById('minuteSelect'),hourRange=document.getElementById('hourRange'),minuteRange=document.getElementById('minuteRange'),hourReadout=document.getElementById('hourReadout'),minuteReadout=document.getElementById('minuteReadout'),digitalHour=document.getElementById('digitalHour'),digitalMinute=document.getElementById('digitalMinute'),hourHand=document.getElementById('hourHand'),minuteHand=document.getElementById('minuteHand'),ticks=document.getElementById('ticks'),numbers=document.getElementById('numbers'),clock=document.getElementById('clock');
 for(let h=1;h<=12;h++){let o=document.createElement('option');o.value=h;o.textContent=h;hourSelect.appendChild(o)}
 for(let m=0;m<60;m++){let o=document.createElement('option');o.value=m;o.textContent=String(m).padStart(2,'0');minuteSelect.appendChild(o)}
 for(let i=0;i<60;i++){let a=i*6*Math.PI/180,major=i%5===0,r1=major?143:151,r2=164,x1=200+Math.sin(a)*r1,y1=200-Math.cos(a)*r1,x2=200+Math.sin(a)*r2,y2=200-Math.cos(a)*r2,l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',major?'#2d5576':'#9fb3c5');l.setAttribute('stroke-width',major?'5':'2');l.setAttribute('stroke-linecap','round');ticks.appendChild(l)}
 for(let h=1;h<=12;h++){let a=h*30*Math.PI/180,r=118,t=document.createElementNS('http://www.w3.org/2000/svg','text');t.setAttribute('x',200+Math.sin(a)*r);t.setAttribute('y',200-Math.cos(a)*r);t.setAttribute('text-anchor','middle');t.setAttribute('dominant-baseline','middle');t.setAttribute('font-size','28');t.setAttribute('font-family','Arial,sans-serif');t.setAttribute('font-weight','900');t.setAttribute('fill','#17324d');t.textContent=h;numbers.appendChild(t)}
 let hour=10,minute=10;
-function update(){hourHand.setAttribute('transform',`rotate(${(hour%12)*30+minute*.5} 200 200)`);minuteHand.setAttribute('transform',`rotate(${minute*6} 200 200)`);digitalHour.textContent=String(hour).padStart(2,'0');digitalMinute.textContent=String(minute).padStart(2,'0');hourSelect.value=hour;minuteSelect.value=minute;minuteRange.value=minute;minuteReadout.textContent=minute===1?'1 minut':minute+' minute'}
-hourSelect.addEventListener('change',()=>{hour=Number(hourSelect.value);update()});minuteSelect.addEventListener('change',()=>{minute=Number(minuteSelect.value);update()});minuteRange.addEventListener('input',()=>{minute=Number(minuteRange.value);update()});
+function update(){hourHand.setAttribute('transform',`rotate(${(hour%12)*30+minute*.5} 200 200)`);minuteHand.setAttribute('transform',`rotate(${minute*6} 200 200)`);digitalHour.textContent=String(hour).padStart(2,'0');digitalMinute.textContent=String(minute).padStart(2,'0');hourSelect.value=hour;minuteSelect.value=minute;hourRange.value=hour;minuteRange.value=minute;hourReadout.textContent='Ora '+hour;minuteReadout.textContent=minute===1?'1 minut':minute+' minute'}
+hourSelect.addEventListener('change',()=>{hour=Number(hourSelect.value);update()});minuteSelect.addEventListener('change',()=>{minute=Number(minuteSelect.value);update()});hourRange.addEventListener('input',()=>{hour=Number(hourRange.value);update()});minuteRange.addEventListener('input',()=>{minute=Number(minuteRange.value);update()});
 let dragging=false;function setMinuteFromPointer(e){let pt=clock.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;let p=pt.matrixTransform(clock.getScreenCTM().inverse()),deg=Math.atan2(p.x-200,200-p.y)*180/Math.PI;if(deg<0)deg+=360;minute=Math.round(deg/6)%60;update()}
 minuteHand.addEventListener('pointerdown',e=>{dragging=true;minuteHand.setPointerCapture(e.pointerId);setMinuteFromPointer(e)});minuteHand.addEventListener('pointermove',e=>{if(dragging)setMinuteFromPointer(e)});minuteHand.addEventListener('pointerup',()=>dragging=false);minuteHand.addEventListener('pointercancel',()=>dragging=false);
 update();
