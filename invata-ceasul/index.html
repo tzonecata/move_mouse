@@ -24,6 +24,7 @@
   .hour-readout,.minute-readout{text-align:center;font-size:24px;font-weight:900;margin-top:4px}
   .hour-readout{color:var(--hour)}
   .minute-readout{color:var(--minute)}
+  .range-labels{display:flex;justify-content:space-between;font-size:12px;color:var(--soft);padding:0 2px;margin-top:2px}
   .clock-wrap{display:flex;justify-content:center}
   svg{width:min(94vw,430px);height:auto;display:block;touch-action:none}
   .legend{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;font-size:18px;font-weight:900;margin-top:12px}
@@ -43,7 +44,12 @@
     <div class="controls">
       <div class="control"><label for="hourSelect">Ora</label><select id="hourSelect"></select></div>
       <div class="control"><label for="minuteSelect">Minute</label><select id="minuteSelect"></select></div>
-      <div class="control full"><label for="hourRange">Alege ora</label><input id="hourRange" type="range" min="1" max="12" step="1" value="10"><div id="hourReadout" class="hour-readout">Ora 10</div></div>
+      <div class="control full">
+        <label for="hourRange">Alege orice oră</label>
+        <input id="hourRange" type="range" min="1" max="12" step="1" value="10">
+        <div class="range-labels"><span>1</span><span>6</span><span>12</span></div>
+        <div id="hourReadout" class="hour-readout">Ora 10</div>
+      </div>
       <div class="control full"><label for="minuteRange">Alege orice minut</label><input id="minuteRange" type="range" min="0" max="59" step="1" value="10"><div id="minuteReadout" class="minute-readout">10 minute</div></div>
     </div>
   </div>
